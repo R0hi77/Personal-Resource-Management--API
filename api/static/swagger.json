@@ -1,0 +1,279 @@
+
+{
+    "openapi": "3.0.0",
+    "info": {
+      "description": "Backend project 2",
+      "version": "1.0.0",
+      "title": "Personal Resource Manager"
+    },
+    
+    "tags": [
+        {
+          "name": "CRUD API",
+          "description": "Handles user tasks, income, expesnses and meals"
+        }
+      ],
+
+
+
+      "components": {
+        "schemas": {
+            "TodoList": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                    "type": "string"
+                    },
+                    "description": {
+                    "type": "string"
+                    }
+                }
+            },
+            "Id":{
+            "type" : "integer",
+            "properties" : {
+                "name" : {
+                    "type" : "integer"
+                }
+            }
+        },
+            "update":{
+              "type": "object",
+              "properties" :{
+                "name": {
+                    "type": "string"
+                    },
+                  "description": {
+                    "type": "string"
+                  },
+                  "completed": {
+                    "type": "boolean"
+                  }
+              }
+            }
+        }
+    },
+
+
+      "auth definitions": {
+        "Register": {
+          "type": "object",
+          "properties": {
+            "username": {
+              "type": "string"
+            },
+            "email": {
+              "type": "string"
+            },
+            "password":{
+                "type":"string"
+            },
+            "confirm password":{
+                "types":"string"
+            }
+          }
+        },
+
+            "Login": {
+              "type": "object",
+              "properties": {
+                "email": {
+                  "type": "string"
+                },
+                "password":{
+                    "type":"string"
+                }
+                
+              }
+            }
+          
+      },
+
+
+      
+
+      "Task definitions": {
+        "Create": {
+          "type": "object",
+          "properties": {
+            "task": {
+              "type": "string"
+            },
+            "description":{
+                "type":"string"
+            },
+            "duetime":{
+                "type":"string"
+            }
+            
+          }
+        }
+        
+      },
+
+      "paths": {
+        "/api/auth/register": {
+          "post": {
+            "description": "Create account",
+            "consumes": [
+                "application/json"
+            ],
+            "produces": [
+              "application/json"
+            ],
+            "parameters":[
+                {
+                   "name":"registration data",
+                   "in":"body",
+                   "description":"user account data",
+                   "required":true,
+                   "schema":{
+                    "$ref":"#/auth definitions/Register"
+                   }
+                }
+            ],
+            "responses": {
+              "200": {
+                "description": "user account created"
+                
+              },
+              "400":{
+                "description":"invalid request data"
+              }
+            }
+          }
+        },
+
+        "/api/auth/login": {
+            "post": {
+              "description": "Login",
+              "consumes": [
+                  "application/json"
+              ],
+              "produces": [
+                "application/json"
+              ],
+              "parameters":[
+                  {
+                     "name":"Login data",
+                     "in":"body",
+                     "description":"user account data",
+                     "required":true,
+                     "schema":{
+                      "$ref":"#/auth definitions/Login"
+                     }
+                  }
+              ],
+              "responses": {
+                "200": {
+                  "description": "user Logged in"
+                  
+                },
+                "400":{
+                  "description":"invalid request data"
+                }
+              }
+            }
+          },
+
+          "/api/auth/logout": {
+            "get": {
+              "description": "Logout",
+              "consumes": [
+                  "application/json"
+              ],
+              "produces": [
+                "application/json"
+              ],
+              
+              "responses": {
+                "200": {
+                  "description": "user Logged in"
+                  
+                },
+                "400":{
+                  "description":"invalid request data"
+                }
+              }
+            }
+          },
+
+          "/api/task/create": {
+            "post": {
+              "description": "Logout",
+              "consumes": [
+                  "application/json"
+              ],
+              "produces": [
+                "application/json"
+              ],
+
+              "parameters":[
+                {
+                    "name":"Task data",
+                    "in":"body",
+                    "description":"Task data",
+                    "required":true,
+                    "schema":{
+                     "$ref":"#/Task definitions/Create" 
+                            }
+                }
+              ],
+              
+              "responses": {
+                "200": {
+                  "description": "task created"
+                  
+                },
+                "400":{
+                  "description":"invalid request data"
+                }
+              }
+            }
+          },
+          "/api/task/edit/<int:id>": {
+            "post": {
+              "description": "edit",
+              "consumes": [
+                  "application/json"
+              ],
+              "produces": [
+                "application/json"
+              ],
+
+              "parameters":[
+                {
+                    "name":"Task data",
+                    "in":"body",
+                    "description":"Task data",
+                    "required":true,
+                    "schema":{
+                     "$ref":"#/Task definitions/Create" 
+                            }
+                }
+              ],
+              
+              "responses": {
+                "200": {
+                  "description": "task editted"
+                  
+                },
+                "400":{
+                  "description":"invalid request data"
+                }
+              }
+            }
+          }
+
+          
+    }
+
+
+       
+        
+    
+
+
+    
+      
+  }
