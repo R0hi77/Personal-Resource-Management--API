@@ -11,12 +11,13 @@ auth_bp = Blueprint('auth',__name__,url_prefix='/api/auth')
 
 @auth_bp.post('/register')
 def signup():
+    data = request.get_json()
     try:
         user_data= Register(
-            username=request.form['username'],
-            email=request.form['email'],
-            password=request.form['password'],
-            confirm_password=request.form['confirm password']
+            username=data['username'],
+            email=data['email'],
+            password=data['password'],
+            confirm_password=data['confirm password']
                             )
         
     except ValidationError as e:
@@ -39,18 +40,17 @@ def signup():
         db.session.commit()
         print(user)
         return jsonify(
-            {
-                'messasge':'user created',
-                'user data':created_user
-                    
-            }
+            {"username":user.username,
+             "email":user.email,
+             "id":user.id}
         ),http_status_codes.HTTP_201_CREATED
     
 
 @auth_bp.post('/login')
 def login():
+    data=request.get_json()
     try:
-        user_data =Login(email=request.form['email'],password=request.form['password'])
+        user_data =Login(email=data['email'],password=data['password'])
     except ValidationError as e:
         return jsonify({"error":str(e)}),http_status_codes.HTTP_400_BAD_REQUEST
     
@@ -59,14 +59,12 @@ def login():
         refresh=create_refresh_token(identity=user.id)
         access=create_access_token(identity=user.id)
 
-        return jsonify({'user':{
-            "access taken":access,
-            "refresh token":refresh,
+        return jsonify({
+            "access_token":access,
+            "refresh_token":refresh,
             "username":user.username,
             "email":user.email
-        }
-
-        }),http_status_codes.HTTP_200_OK
+            }),http_status_codes.HTTP_200_OK
     
     else:
         return jsonify({"error":"wrong credentials"}),http_status_codes.HTTP_401_UNAUTHORIZED
@@ -77,7 +75,7 @@ def login():
 def refresh():
     identity=get_jwt_identity()
     new_token= create_access_token(identity=identity)
-    return jsonify({'new access token':new_token}),http_status_codes.HTTP_200_OK
+    return jsonify({'access_token':new_token}),http_status_codes.HTTP_200_OK
 
 
 @auth_bp.post('/logout')

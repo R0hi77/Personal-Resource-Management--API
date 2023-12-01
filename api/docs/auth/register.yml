@@ -1,0 +1,41 @@
+User Registration
+---
+paths:
+  /register:
+    post:
+      tags:
+        - Authentication
+      parameters:
+        - name: body
+          description: The body should contain the user Registration data
+          in: body
+          required: true
+          schema:
+            type: object
+            required:
+              - "email"
+              - "password"
+              - "confirm password"
+              - "username"
+            properties:
+              email:
+                type: "email"
+                
+                example: "johndoe@email.com"
+              username:
+                type: "username"
+                example: "johnDoe"
+              password:
+                type: "string"
+                format: password
+                example: "********"
+              confirm password:
+                type: "string"
+                format: password
+                example: "********"
+      responses:
+        200:
+          description: op success
+
+        400:
+          description: Validation exception

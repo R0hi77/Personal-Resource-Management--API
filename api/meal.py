@@ -9,14 +9,16 @@ from api import http_status_codes
 
 meal_bp = Blueprint('meal',__name__,url_prefix='/api/meal')
 
-@meal_bp.post('/create')
+@meal_bp.post('/')
 @jwt_required()
+
 def create():
+    data =request.get_json()
     user_id = get_jwt_identity()
     try:
         meal_data = Meal_schema(
-            meal=request.form['meal'],
-            description=request.form['meal_description']
+            meal=data['meal'],
+            description=data['description']
         )
     except ValidationError as e:
         return jsonify({'message':str(e)})
@@ -29,46 +31,39 @@ def create():
     db.session.commit()
     
     return jsonify(
-        {"meal added":{"taask":meal.meal,
+        {"Meal":meal.meal,
                  "description":meal.meal_description,
-                 }}
+                 "id":meal.id,
+                 "created":meal.created
+                 }
     ),http_status_codes.HTTP_201_CREATED
 
-@meal_bp.post('/search')
+
+@meal_bp.get('/')
 @jwt_required()
 def search_meal():
-    try:
-        search= Search(query=request.form['query'])
-        #should have an id condition
-        #print(search)
-        search_query="%{}%".format(search.query)
-        results = Meal.query.filter(Meal.meal.like(search_query)).all()
+   
+        query = request.args.get('query')
+        search_query="%{}%".format(query)
+        results = Meal.query.filter(Meal.meal.like(search_query)|Meal.meal_description.like(search_query)).all()
         if results:
             for result in results:
                 return jsonify(
                     {
                         "meal":result.meal,
-                        "description":result.meal_description
+                        "description":result.meal_description,
+                        "id":result.id,
+                        "created":result.created
                     }
                 ),http_status_codes.HTTP_200_OK
         else:
             return jsonify({"message":"Not found"})
-
-    except ValidationError as e:
-        return jsonify({"message":str(e)})
     
-    
-    
-
-@meal_bp.get('/all')
+@meal_bp.get('/')
 @jwt_required()
 def get_all():
     try:
-        #identity = get_jwt_identity()
-
-        # Query tasks with their associated user's username
         meals = db.session.query(Meal, User.username).join(User, Meal.user_id == User.id).order_by(Meal.created.desc()).all()
-        
         if meals:
             meal_list = []
             for meal, username in meals:
@@ -88,15 +83,16 @@ def get_all():
         print(e)  # Print the exception for debugging purposes
         return jsonify({'message': 'Internal Server Error'}),http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
 
-@meal_bp.post('/edit/<int:id>')
+@meal_bp.put('/<int:id>')
 @jwt_required()
 def edit(id):
     meal=Meal.query.filter_by(id=id).first()
+    data = request.get_json()
     if meal:
         try:
             meal_data = Meal_schema(
-                meal=request.form['meal'],
-                description=request.form['meal_description'],
+                meal=data['meal'],
+                description=data['description'],
             )
         except ValidationError as e:
             return jsonify({"message":str(e)})
@@ -108,12 +104,14 @@ def edit(id):
         db.session.merge(meal)
         db.session.commit()
 
-        return jsonify({'message':'meal editted'}),http_status_codes.HTTP_200_OK
+        return jsonify({"meal":meal.meal,
+                        "description":meal.meal_description,
+                        "id":meal.id}),http_status_codes.HTTP_200_OK
     else:
         return jsonify({"message":"No such meal item exists"})
 
 
-@meal_bp.delete('/delete/<int:id>')
+@meal_bp.delete('/<int:id>')
 @jwt_required()
 def delete(id):
     meal=Meal.query.filter_by(id = id).first()
@@ -122,4 +120,4 @@ def delete(id):
     else:
         db.session.delete(meal)
         db.session.commit()
-    return jsonify({'message':'meal item deleted'}),http_status_codes.HTTP_200_OK
+    return jsonify(),http_status_codes.HTTP_204_NO_CONTENT

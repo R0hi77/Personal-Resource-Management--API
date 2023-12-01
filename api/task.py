@@ -9,15 +9,16 @@ from api import http_status_codes
 
 task_bp = Blueprint('task',__name__,url_prefix='/api/task')
 
-@task_bp.post('/create')
+@task_bp.post('/')
 @jwt_required()
 def create():
     user_id = get_jwt_identity()
+    data = request.get_json()
     try:
         task_data = Task_schema(
-            task=request.form['task'],
-            description=request.form['description'],
-            duetime=request.form['duetime'],
+            task=data['task'],
+            description=data['description'],
+            duetime=data['duetime'],
         )
     except ValidationError as e:
         return jsonify({'message':str(e)})
@@ -31,37 +32,35 @@ def create():
     db.session.commit()
     
     return jsonify(
-        {"task added":{"taask":task.task,
+        {"task":task.task,
                  "description":task.description,
-                 "duetime":task.duetime}}
+                 "duetime":task.duetime,
+                 "id":task.id}
     ),http_status_codes.HTTP_201_CREATED
 
-@task_bp.post('/search')
+@task_bp.get('/')
 @jwt_required()
-def search_task():
-    try:
-        search_query = Search(query=request.form['query'])
-    except ValidationError as e:
-        return jsonify({"message":str(e)})
+def search_for_a_task():
     
-    results = Task.query.filter(Task.task.ilike(f'%{search_query.query}%')|Task.description.ilike(f'%{search_query}%')).all()
+    query = request.args.get('query')
+    results = Task.query.filter(Task.task.ilike(f'%{query}%')|Task.description.ilike(f'%{query}%')).all()
     if results:
         for result in results:
             return jsonify(
                 {
                     "task":result.task,
-                    "description":result.description
+                    "description":result.description,
+                    "id":result.id,
+                    "duetime":result.duetime,
+                    "created":result.created
                 }
             ),http_status_codes.HTTP_200_OK
-    return jsonify({"message":"Not found"}),http_status_codes.HTTP_204_NO_CONTENT
+    return jsonify({"message":"Not found"}),http_status_codes.HTTP_200_OK
 
-@task_bp.get('/all')
+@task_bp.get('/')
 @jwt_required()
 def get_all():
     try:
-        #identity = get_jwt_identity()
-
-        # Query tasks with their associated user's username
         tasks = db.session.query(Task, User.username).join(User, Task.user_id == User.id).order_by(Task.created.desc()).all()
         
         if tasks:
@@ -78,41 +77,42 @@ def get_all():
 
             return jsonify(task_list),http_status_codes.HTTP_200_OK
         else:
-            return jsonify({"message": "No tasks added yet"}),http_status_codes.HTTP_200_OK
+            return jsonify({"message": "Nothing found"}),http_status_codes.HTTP_200_OK
 
     except Exception as e:
         print(e)  # Print the exception for debugging purposes
         return jsonify({'message': 'Internal Server Error'}),http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
 
     
-@task_bp.get('/one/<int:id>')
+@task_bp.get('/<int:id>')
 @jwt_required()
 def get_one(id):
     task=Task.query.filter_by(id=id).first()
     if task:
         return jsonify(
-            {'task':{
+            {
                 "task":task.task,
                 "description":task.description,
                 "duetime":task.duetime,
                 "duetime":task.created
-            }}
+            }
         ),http_status_codes.HTTP_200_OK
     
     else:
-        return jsonify({'message':'No task such exist'}),http_status_codes.HTTP_204_NO_CONTENT
+        return jsonify({'message':'No task such exist'}),http_status_codes.HTTP_200_OK
 
 
-@task_bp.post('/edit/<int:id>')
+@task_bp.put('/<int:id>')
 @jwt_required()
 def edit(id):
     task=Task.query.filter_by(id=id).first()
+    data = request.get_json()
     if task:
         try:
             task_data = Task_schema(
-                task=request.form['task'],
-                description=request.form['description'],
-                duetime=request.form['duetime'],
+                task=data['task'],
+                description=data['description'],
+                duetime=data['duetime'],
             )
         except ValidationError as e:
             return jsonify({"message":str(e)})
@@ -124,12 +124,15 @@ def edit(id):
         db.session.merge(task)
         db.session.commit()
 
-        return jsonify({'message':'task editted'}),http_status_codes.HTTP_200_OK
+        return jsonify({"task":task.task,
+                        "description":task.description,
+                        "duetime":task.duetime,
+                        "id":task.id}),http_status_codes.HTTP_200_OK
     else:
-        return jsonify({"message":"no such task exists"}),http_status_codes.HTTP_204_NO_CONTENT
+        return jsonify({"message":"no such task exists"}),http_status_codes.HTTP_200_OK
 
 
-@task_bp.delete('/delete/<int:id>')
+@task_bp.delete('/<int:id>')
 @jwt_required()
 def delete(id):
     task=Task.query.filter_by(id = id).first()
@@ -138,7 +141,7 @@ def delete(id):
     else:
         db.session.delete(task)
         db.session.commit()
-    return jsonify({'message':'Task deleted'}),http_status_codes.HTTP_200_OK
+    return jsonify(),http_status_codes.HTTP_204_NO_CONTENT
 
     
     

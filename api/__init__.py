@@ -9,7 +9,10 @@ from api.expense import expense_bp
 from flask_jwt_extended import JWTManager
 from api.models import RevokedTokens
 from flask_swagger_ui import get_swaggerui_blueprint
-from dotenv import load_dotenv
+#from dotenv import load_dotenv
+from flasgger import Swagger,swag_from
+from api.config.swagger import template,swagger_config
+
 #import psycopg2
 
 
@@ -28,7 +31,9 @@ def create_app(test_config=None):
         app.config.from_mapping(
             SECRET_KEY=os.getenv("SECRET_KEY"),
             SQLALCHEMY_DATABASE_URI=DB_URL,
-            JWT_SECRET_KEY=os.getenv("JWT_SECRET_KEY")
+            JWT_SECRET_KEY=os.getenv("JWT_SECRET_KEY"),
+            SWAGGER={'title': "Personal Resource Manager API",
+                'uiversion': 3}
         )
         
 
@@ -48,6 +53,13 @@ def create_app(test_config=None):
     db.app =app
     db.init_app(app)
     JWTManager(app)
+
+    # Swagger(app,config=swagger_config,template=template )
+    @app.post('/')
+    @swag_from('./docs/auth/register.yml')
+    def index():
+        pass
+
 
     #blueprint registrations
     app.register_blueprint(auth_bp)

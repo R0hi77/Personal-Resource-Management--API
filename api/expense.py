@@ -9,7 +9,7 @@ from api import http_status_codes
 
 expense_bp = Blueprint('expense',__name__,url_prefix='/api/expense')
 
-@expense_bp.post('/create')
+@expense_bp.post('/')
 @jwt_required()
 def create():
     user_id = get_jwt_identity()
@@ -29,20 +29,21 @@ def create():
     db.session.commit()
     
     return jsonify(
-        {"expense added":{"expense amount":expense.expense,
-                 "details":expense.expense_details
-                 }}
+        {"expense amount":expense.expense,
+                 "details":expense.expense_details,
+                 "id":expense.id,
+                 "created":expense.created
+                 }
     ),http_status_codes.HTTP_201_CREATED
 
-@expense_bp.post('/search')
+@expense_bp.get('/')
 @jwt_required()
 def search_expense():
-    try:
-        search= Search(query=request.form['query'])
-        #should have an id condition
-        #print(search)
-        search_query="%{}%".format(search.query)
-        results = Expense.query.filter(Expense.expense_details.like(search_query)).all()
+    
+    
+        query = request.args.get('query')
+        search_query="%{}%".format(query)
+        results = Expense.query.filter(Expense.expense_details.like(search_query)|Expense.expense.like(search_query)).all()
         if results:
             for result in results:
                 return jsonify(
@@ -53,15 +54,9 @@ def search_expense():
                     }
                 ),http_status_codes.HTTP_200_OK
         else:
-            return jsonify({"message":"Not found"})
+            return jsonify({"message":"Not found"}),http_status_codes.HTTP_200_OK
 
-    except ValidationError as e:
-        return jsonify({"message":str(e)})
-    
-    
-    
-
-@expense_bp.get('/all')
+@expense_bp.get('/')
 @jwt_required()
 def get_all():
     try:
@@ -90,33 +85,34 @@ def get_all():
         return jsonify({'message': 'Internal Server Error'}),http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
 
     
-@expense_bp.get('/one/<int:id>')
+@expense_bp.get('/<int:id>')
 @jwt_required()
 def get_one(id):
     expense=Expense.query.filter_by(id=id).first()
     if expense:
         return jsonify(
-            {'expense detials':{
+            {   "id":expense.id,
                 "expense":expense.expense,
                 "details":expense.expense_details,
                 "create":expense.created
                 
-            }}
+            }
         ),http_status_codes.HTTP_200_OK
     
     else:
-        return jsonify({'message':'No such  expense item exist'}),http_status_codes.HTTP_204_NO_CONTENT
+        return jsonify({'message':'No such  expense item exist'}),http_status_codes.HTTP_200_OK
 
 
-@expense_bp.post('/edit/<int:id>')
+@expense_bp.put('/<int:id>')
 @jwt_required()
 def edit(id):
     expense=Expense.query.filter_by(id=id).first()
+    data = request.get_json()
     if expense:
         try:
             expense_data = Expense_schema(
-                expense=request.form['expense'],
-                details=request.form['details'],
+                expense=data['expense'],
+                details=data['details'],
             )
         except ValidationError as e:
             return jsonify({"message":str(e)})
@@ -128,12 +124,15 @@ def edit(id):
         db.session.merge(expense)
         db.session.commit()
 
-        return jsonify({'message':'expense item editted'}),http_status_codes.HTTP_200_OK
+        return jsonify({"expense":expense.expense,
+                        "details":expense.expense_details,
+                        "created":expense.created,
+                        "id":expense.id}),http_status_codes.HTTP_200_OK
     else:
         return jsonify({"message":"No such expense item exists"})
 
 
-@expense_bp.delete('/delete/<int:id>')
+@expense_bp.delete('/<int:id>')
 @jwt_required()
 def delete(id):
     expense=Expense.query.filter_by(id = id).first()
@@ -142,4 +141,4 @@ def delete(id):
     else:
         db.session.delete(expense)
         db.session.commit()
-    return jsonify({'message':'expense item deleted'}),http_status_codes.HTTP_200_OK
+    return jsonify(),http_status_codes.HTTP_204_NO_CONTENT
